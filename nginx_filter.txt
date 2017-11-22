@@ -1,0 +1,42 @@
+if [program] == 'prod_salonvn' {
+   grok {
+        match => [ "message" , "%{IPV4:clientip} - \[%{HTTPDATE:timeStamp}\] \"%{WORD:method} %{GREEDYDATA:request} HTTP/%{NUMBER:http_version}\" %{NUMBER:statu} (?:%{NUMBER:bytes}|-) \"%{HOSTNAME:url}\" \"%{DATA:agent}\" (?:%{NOTSPACE:http_x_forwarded_for}|-)\"(?:%{WORD:cachestatu}|-)\"(?:%{GREEDYDATA:serverip}|-) (?:%{NUMBER:serverstatu}|-) \"%{NUMBER:responsetime}\" \[(?:%{NUMBER:response}|-)\]"]
+     }  
+
+    mutate {
+        replace => [ 'type', 'prod_salonvn' ]
+        convert => ["response", "integer"]
+        convert => ["bytes", "integer"]
+        convert => ["responsetime", "float"]
+        remove_field => ["http_version","timeStamp","serverip","response"]
+    }
+}
+
+if [type] == 'nginx' {
+    grok {
+        match => [ "message" , "%{IPV4:clientip} - \[%{HTTPDATE:timeStamp}\] \"%{WORD:method} %{GREEDYDATA:request} HTTP/%{NUMBER:http_version}\" %{NUMBER:statu} (?:%{NUMBER:bytes}|-) \"%{HOSTNAME:url}\" \"%{DATA:agent}\" (?:%{NOTSPACE:http_x_forwarded_for}|-)\"(?:%{WORD:cachestatu}|-)\"(?:%{GREEDYDATA:serverip}|-) (?:%{NUMBER:serverstatu}|-) \"%{NUMBER:responsetime}\" \[(?:%{NUMBER:response}|-)\]"]
+     }  
+
+     mutate {
+       convert => ["response", "integer"]
+       convert => ["bytes", "integer"]
+       convert => ["responsetime", "float"]
+       remove_field => ["http_version","timeStamp","serverip","response"]
+     }
+ 
+     geoip {
+       source => "clientip"
+     }
+      
+}
+
+if [type] == 'nginx_error' {
+    grok {
+        match => [ "message" , "%{DATESTAMP:timeStamp} \[%{WORD:level}\] %{DATA:errid}: %{DATA:pid} %{GREEDYDATA:errtype}\, client\: %{IPV4:clientip}\, server\: %{HOSTNAME:url}",
+                   "message" , "%{DATESTAMP:timeStamp} \[%{WORD:level}\] %{DATA:errid}: %{DATA:errtype} \"%{GREEDYDATA:request}\" %{WORD:return} \(%{GREEDYDATA:errormesg}\)"]
+     }  
+    
+     mutate {
+       remove_field => ["errid","timeStamp","pid"]
+     }
+}
