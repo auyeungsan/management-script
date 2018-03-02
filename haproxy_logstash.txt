@@ -1,0 +1,32 @@
+if [program] == 'cash_bo' {
+   grok {
+        match => [ "message" , "%{SYSLOGTIMESTAMP:timeStamp} %{HOSTNAME:hostname} %{GREEDYDATA:hoststring} %{IPV4:clientip}:%{NUMBER:srcport} \[%{GREEDYDATA:reqdate}\] %{WORD:frontname} %{GREEDYDATA:backname} %{GREEDYDATA:duration} %{NUMBER:status} %{INT:Bytes} %{GREEDYDATA:rspstatu} \{%{DATA:domain}\|%{DATA:agent}\} \"%{WORD:method} %{GREEDYDATA:request} HTTP\/%{NUMBER:version}\""]
+     }  
+
+    mutate {
+        replace => [ 'type', 'HAProxy' ]
+        convert => ["Bytes", "integer"]
+    }
+
+    geoip {
+       source => "clientip"
+     }
+      
+}
+
+if [program] == 'api_reverse' {
+   grok {
+        match => [ "message" , "%{SYSLOGTIMESTAMP:timeStamp} %{HOSTNAME:hostname} %{GREEDYDATA:hoststring} %{IPV4:clientip}:%{NUMBER:srcport} \[%{GREEDYDATA:reqdate}\] %{WORD:frontname} %{GREEDYDATA:backname} %{GREEDYDATA:duration} %{NUMBER:status} %{INT:bytes} %{GREEDYDATA:rspstatu} \{%{DATA:domain}\} \"%{WORD:method} %{GREEDYDATA:request} HTTP\/%{NUMBER:version}\""]
+     }  
+
+    mutate {
+        replace => { 'type' => 'HAProxy' }
+        convert => {"bytes" => "integer"}
+    }
+
+    geoip {
+       source => "clientip"
+     }
+      
+}
+
